@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>空想戰線／生存者｜多檔線上測試版</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/game-stage.css">
+</head>
+<body>
+  <main class="game-stage" id="gameStage">
+    <canvas id="world" width="960" height="560" aria-label="15 度角場景原型"></canvas>
+    <div class="game-vignette" aria-hidden="true"></div>
+    <div id="transition" class="transition">前往另一個地點</div>
+    <div id="battlefieldWindow" class="battlefield-window" aria-live="polite"></div>
+    <div id="itemRevealToast" class="item-reveal-toast" aria-live="assertive"></div>
+    <section id="itemInspection" class="item-inspection-shell is-hidden" aria-live="polite" aria-hidden="true">
+      <article id="itemInspectionCard" class="item-inspection-card" aria-label="道具鑑定結果">
+        <button id="itemInspectionClose" class="item-inspection-close" type="button" aria-label="收起道具說明">×</button>
+        <div class="inspection-heading">
+          <div id="itemInspectionIcon" class="inspection-icon" data-family="CASE" aria-hidden="true"></div>
+          <div><div id="itemInspectionCategory" class="inspection-category">疑似物件</div><h2 id="itemInspectionName">尚未鑑定</h2><p id="itemInspectionVague">只能看出模糊的外型</p></div>
+        </div>
+        <p id="itemInspectionReveal" class="inspection-reveal"></p>
+        <p id="itemInspectionRelation" class="inspection-relation"></p>
+        <div id="itemInspectionRoute" class="inspection-route" aria-label="三件道具關聯"></div>
+        <div class="inspection-help">點按卡片外的畫面即可收回右上角；遊戲會繼續進行</div>
+      </article>
+    </section>
+
+    <div class="game-hud">
+      <div class="hud-top">
+        <section id="statusPanel" class="hud-panel status-panel" aria-label="目前狀態">
+          <div class="status-bars">
+            <div class="status-bar-row"><span>體力</span><div class="status-bar"><i id="staminaFill"></i></div><b id="staminaText">100／100</b></div>
+            <div class="status-bar-row"><span>專注</span><div class="status-bar"><i id="focusFill"></i></div><b id="focusText">100／100</b></div>
+            <div id="mobilityText" class="eyebrow" style="margin-top:2px">徒步｜速度 0</div>
+          </div>
+        </section>
+        <div class="top-right-stack">
+          <div id="dangerBadge" class="danger-badge" data-level="1">危險 A1</div>
+          <button id="itemCounterButton" class="hud-panel item-counter" type="button" aria-expanded="false" aria-controls="itemInspection"><b id="keyItemCount">0/3</b><span id="keyItemDescription">疑似：尚未確認的關鍵物</span></button>
+          <div class="tool-buttons">
+            <button id="saveRunButton" class="icon-button" type="button" aria-label="保存本局">💾</button>
+            <button id="devButton" class="icon-button" type="button" aria-label="開發工具">⋯</button>
+          </div>
+        </div>
+      </div>
+      <div id="touchJoystick" class="touch-joystick" aria-label="觸控移動搖桿"><div id="touchStick" class="touch-stick"></div><span class="touch-joystick-label">MOVE</span></div>
+      <div id="interactionHud" class="interaction-hud is-hidden" aria-live="polite">
+        <div class="interaction-copy"><b id="interactionName">可互動設施</b><span id="interactionDescription">靠近後可調查</span><div class="interaction-progress"><i id="interactionProgress"></i></div></div>
+        <button id="interactionButton" class="interaction-button" type="button">調查</button>
+      </div>
+      <div id="deliveryHud" class="delivery-hud is-hidden" aria-live="polite"><b id="deliveryTitle">可交付的關鍵物</b><p id="deliveryDescription">靠近人物後可選擇交付對象。</p><div id="deliveryTargets" class="delivery-targets"></div></div>
+      <div id="heroRoster" class="hero-roster" aria-live="polite"></div>
+    </div>
+
+    <section id="welcome" class="overlay-modal" aria-modal="true" aria-labelledby="welcomeTitle">
+      <div class="overlay-card">
+        <div class="overlay-tag">SURVIVOR · FIRST FIELD TEST</div>
+        <h1 id="welcomeTitle">穿過混亂<em>活著抵達</em></h1>
+        <p>你一開始連自己的身分都想不起來，也沒有直接攻擊的手段。第一件道具會讓記憶接回來；之後跨越七個區域、進出建築追查線索，而候選英雄會像真正的人一樣自行移動、救人或選擇迎戰。</p>
+        <div id="runtimeNotice" class="runtime-notice">多檔靜態環境：file://、http://、https:// 靜態網址皆可使用；不需要 localhost 或外部素材。</div>
+        <div class="overlay-checks"><div class="overlay-check">第一件道具喚回身分</div><div class="overlay-check">七區邊界可直接跨越</div><div class="overlay-check">英雄依個性自主行動</div><div class="overlay-check">金色入口通往專屬室內</div></div>
+        <button id="startButton" class="primary-action" type="button">進入現場</button>
+        <button id="loadRunButton" class="secondary-action" type="button">讀取上次進度</button>
+        <div id="saveSlotStatus" class="save-slot-status" aria-live="polite">尚未保存本局</div>
+      </div>
+    </section>
+
+    <section id="storyReveal" class="overlay-modal story-reveal is-hidden" aria-modal="true" aria-labelledby="storyTitle">
+      <article class="story-card">
+        <div id="storyChapter" class="overlay-tag">MEMORY RECOVERED</div>
+        <h1 id="storyTitle">你想起自己是誰</h1>
+        <div id="storyIdentity" class="story-identity"></div>
+        <div id="storyLines" class="story-lines" aria-live="polite"></div>
+        <button id="storyContinue" class="primary-action" type="button">記住這件事／繼續</button>
+      </article>
+    </section>
+
+    <section id="gameOver" class="overlay-modal game-over-screen is-hidden" aria-modal="true" aria-labelledby="gameOverTitle">
+      <div class="overlay-card">
+        <div class="overlay-tag">SURVIVOR STATUS</div>
+        <h1 id="gameOverTitle">Justice Fall</h1>
+        <p id="gameOverReason">你的體力在攻擊中歸零。</p>
+        <div id="gameOverScore" class="game-over-score">結算分數 0</div>
+        <button id="gameOverConfirm" class="primary-action" type="button">確認／重新開始</button>
+      </div>
+    </section>
+
+    <section id="runComplete" class="overlay-modal run-complete-screen is-hidden" aria-modal="true" aria-labelledby="runCompleteTitle">
+      <div class="overlay-card">
+        <div class="overlay-tag">FIELD TEST COMPLETE</div>
+        <h1 id="runCompleteTitle">安全撤離</h1>
+        <div id="runCompleteScore" class="run-complete-score">驗證結算 0</div>
+        <div id="runCompleteDetail" class="run-complete-detail">結算資料整理中。</div>
+        <div id="runCompletePreview" class="preview-fragments is-hidden" aria-live="polite"></div>
+        <div id="worldMap" class="world-map is-hidden" aria-live="polite"></div>
+        <button id="runCompleteConfirm" class="primary-action" type="button">次回予告へ</button>
+      </div>
+    </section>
+
+    <section id="devModal" class="overlay-modal is-hidden" aria-modal="true" aria-labelledby="devTitle">
+      <div class="overlay-card">
+        <div class="overlay-tag">INTERNAL BUILD · HIDDEN TEST PANEL</div>
+        <h2 id="devTitle">開發工具</h2>
+        <div class="settings-grid" aria-label="測試版可調整數值">
+          <label class="setting-row"><span>自由小兵</span><input id="freeMinionInput" type="range" min="0" max="120" value="35" step="1"><b id="freeMinionValue">35</b></label>
+          <label class="setting-row"><span>怪人小兵</span><input id="monsterMinionInput" type="range" min="0" max="60" value="7" step="1"><b id="monsterMinionValue">7</b></label>
+          <label class="setting-row"><span>初始移動速度</span><input id="initialSpeedInput" type="range" min="-50" max="50" value="0" step="1"><b id="initialSpeedValue">0%</b></label>
+          <label class="setting-row"><span>加速度</span><input id="accelerationInput" type="range" min="-50" max="50" value="0" step="1"><b id="accelerationValue">0%</b></label>
+          <label class="setting-row"><span>一般技能檢定</span><input id="skillCheckInput" type="range" min="-50" max="50" value="0" step="1"><b id="skillCheckValue">0%</b></label>
+          <label class="setting-row"><span>英雄桿維持</span><input id="heroLeverInput" type="range" min="-50" max="50" value="0" step="1"><b id="heroLeverValue">0%</b></label>
+        </div>
+        <div class="dev-readouts"><span id="orangePill" class="pill">橘色圈：鎖定</span><span id="redPill" class="pill">紅色圈：鎖定</span></div>
+        <div class="hidden-data">
+          <span id="sceneLabel"></span><span id="stageLabel"></span><span id="regionColor"></span><span id="regionGlyph"></span>
+          <button id="audioButton" type="button">音效</button><span id="itemPill">關鍵道具：未取得</span><span id="chasePill">追殺未開始</span><span id="speedText">0</span><span id="speedFill"></span>
+          <button id="itemButton" type="button">取得關鍵道具</button><button id="clueButton" type="button">調查線索</button><button id="rescueButton" type="button">救援平民</button>
+          <div class="dev-grid">
+          <button id="secondKeyButton" type="button">第二關鍵事件</button><button id="operationButton" type="button">完成高難度操作</button>
+          <button id="leverButton" type="button">英雄桿完成一次</button><button id="rareButton" type="button">取得稀有道具</button>
+          <button id="minionButton" type="button">自由小兵 −1</button><button id="minionFiveButton" type="button">降至 5 隻</button>
+          <button id="speechButton" type="button">怪人台詞完成</button><button id="weakHitButton" type="button">輕擊回饋</button>
+          <button id="heavyHitButton" type="button">重擊回饋</button><button id="clashButton" type="button">英雄／怪人互擊</button>
+          <button id="dialogueButton" type="button">播放固定台詞</button><button id="deathButton" type="button">記錄一名死亡</button>
+          <button id="snapshotButton" type="button">下載狀態快照</button><button id="resetButton" type="button">重新開始</button>
+          </div>
+        </div>
+        <div id="gateText" class="dev-note"></div>
+        <div id="stageCards" class="dev-note"></div>
+        <div id="scoreText" class="dev-note"></div>
+        <div id="scoreMeter" class="hidden-data"></div><input id="debugRoll" class="hidden-data" type="number" min="0" max="0.999999" step="0.000001">
+        <details class="dev-note"><summary>查看證據分數拆解</summary><pre id="scoreBreakdown"></pre></details>
+        <div id="log" class="dev-scroll"></div>
+        <button id="closeDevButton" class="primary-action" type="button" style="margin-top:12px">返回現場</button>
+      </div>
+    </section>
+  </main>
+
+
+  <!-- 依功能與依賴順序載入；所有檔案皆為一般 script，file:// 與靜態主機均可執行。 -->
+  <script src="js/00-kuusou-core-runtime.js"></script>
+  <script src="js/01-character-profiles.js"></script>
+  <script src="js/02-dialogue-lines.js"></script>
+  <script src="js/03-game-content.js"></script>
+  <script src="js/04-game-state.js"></script>
+  <script src="js/05-runtime-context.js"></script>
+  <script src="js/06-completion-routing.js"></script>
+  <script src="js/07-world-geometry.js"></script>
+  <script src="js/08-crowd-and-minions.js"></script>
+  <script src="js/09-rules-and-feedback.js"></script>
+  <script src="js/10-interactions.js"></script>
+  <script src="js/11-items-and-story.js"></script>
+  <script src="js/12-heroes-and-missions.js"></script>
+  <script src="js/13-monster.js"></script>
+  <script src="js/14-combat.js"></script>
+  <script src="js/15-canvas-renderer.js"></script>
+  <script src="js/16-hud-and-scenes.js"></script>
+  <script src="js/17-input.js"></script>
+  <script src="js/18-game-loop.js"></script>
+</body>
+</html>
